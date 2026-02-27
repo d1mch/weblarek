@@ -14,7 +14,7 @@ export interface IProduct {
     price: number | null;
 }
 
-export type TPayment = 'card' | 'cash';
+export type TPayment = 'card' | 'cash' | null;
 
 export interface IBuyer {
     payment: TPayment;
@@ -37,3 +37,5 @@ export interface IOrderResponse {
     id: string;
     total: number;
 }
+
+export type IOrderErrors = Partial<Record<keyof IBuyer, string>>;

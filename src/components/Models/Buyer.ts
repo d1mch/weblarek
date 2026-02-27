@@ -1,7 +1,7 @@
-import { IBuyer, TPayment } from '../../types';
+import { IBuyer, TPayment, IOrderErrors} from '../../types';
 
 export class Buyer {
-    private payment: TPayment | null = null;
+    private payment: TPayment = null;
     private email: string = '';
     private phone: string = '';
     private address: string = '';
@@ -13,9 +13,9 @@ export class Buyer {
         if (data.address !== undefined) this.address = data.address;
     }
 
-    getData(): Partial<IBuyer> {
+    getData(): IBuyer {
         return {
-            payment: this.payment ?? undefined,
+            payment: this.payment,
             email: this.email,
             phone: this.phone,
             address: this.address
@@ -29,7 +29,7 @@ export class Buyer {
         this.address = '';
     }
 
-    validate(): Partial<Record<keyof IBuyer, string>> {
+    validate(): IOrderErrors {
         const errors: Partial<Record<keyof IBuyer, string>> = {};
 
         if (!this.payment) {
