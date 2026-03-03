@@ -1,21 +1,20 @@
 import { ensureElement } from '../../utils/utils';
-import { IEvents } from '../base/Events';
 
 export class Modal {
   private content: HTMLElement;
   private closeButton: HTMLButtonElement;
 
-  constructor(private events: IEvents, private container: HTMLElement) {
+  constructor(private container: HTMLElement) {
     this.content = ensureElement('.modal__content', container);
     this.closeButton = ensureElement<HTMLButtonElement>('.modal__close', container);
 
     // крестик
-    this.closeButton.addEventListener('click', () => {this.events.emit('modal:close');});
+    this.closeButton.addEventListener('click', () => {this.close();});
 
     // клик вне окна
-    container.addEventListener('click', (e) => {
-      if (e.target === container) {
-        this.events.emit('modal:close');
+    this.container.addEventListener('click', (e) => {
+      if (e.target === this.container) {
+        this.close();
       }
     });
   }

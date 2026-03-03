@@ -12,9 +12,13 @@ export abstract class Form<T> extends Component<T> {
     this.formElement = container as HTMLFormElement;
     this.submitButton = ensureElement<HTMLButtonElement>('button[type=submit]', this.formElement);
     this.errorsElement = ensureElement('.form__errors', this.formElement);
-    this.formElement.addEventListener('submit', (event) => {
+
+    this.formElement.addEventListener('submit', (event: Event) => {
       event.preventDefault();
-      this.events.emit('form:submit');
+      const formName = this.formElement.getAttribute('name');
+      if (formName) {
+        this.events.emit(`${formName}:submit`);
+      }
     });
   }
 

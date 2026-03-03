@@ -34,23 +34,27 @@ export class Buyer {
         this.events.emit('buyer:changed', this.getData());
     }
 
-    validate(): IOrderErrors {
+    validate(step: 'order' | 'contacts'): IOrderErrors {
         const errors: Partial<Record<keyof IBuyer, string>> = {};
 
-        if (!this.payment) {
-            errors.payment = 'Не выбран способ оплаты';
+        if (step === 'order') {
+            if (!this.payment) {
+                errors.payment = 'Не выбран способ оплаты';
+            }
+
+            if (!this.address.trim()) {
+                errors.address = 'Не указан адрес';
+            }
         }
 
-        if (!this.address.trim()) {
-            errors.address = 'Не указан адрес';
-        }
+        if (step === 'contacts') {
+            if (!this.email.trim()) {
+                errors.email = 'Введите email';
+            }
 
-        if (!this.email.trim()) {
-            errors.email = 'Введите email';
-        }
-
-        if (!this.phone.trim()) {
-            errors.phone = 'Введите телефон';
+            if (!this.phone.trim()) {
+                errors.phone = 'Введите телефон';
+            }
         }
 
         return errors;

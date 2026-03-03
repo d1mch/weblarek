@@ -1,6 +1,7 @@
 import { ensureElement } from '../../utils/utils';
 import { Form } from './Form';
 import { IEvents } from '../base/Events';
+import { TPayment } from '../../types';
 
 export class OrderForm extends Form<unknown> {
   protected addressInput: HTMLInputElement;
@@ -23,8 +24,12 @@ export class OrderForm extends Form<unknown> {
     });
   }
 
-  set payment(value: 'card' | 'cash' | null) {
+  set payment(value: TPayment) {
     this.cardButton.classList.toggle('button_alt-active', value === 'card');
     this.cashButton.classList.toggle('button_alt-active', value === 'cash');
+  }
+
+  set address(value: string) {
+    this.addressInput.value = value;
   }
 }
