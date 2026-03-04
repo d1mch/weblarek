@@ -20,8 +20,10 @@ import { CardBasket } from './components/Views/Card/CardBasket';
 import { BasketView } from './components/Views/BasketView';
 import { Header } from './components/Views/Header';
 import { Modal } from './components/Views/Modal';
+import { SuccessView } from './components/Views/SuccessView';
 import { OrderForm } from './components/Views/OrderForm';
 import { ContactsForm } from './components/Views/ContactsForm';
+import { IProduct } from './types';
 
 
 const events = new EventEmitter();
@@ -48,8 +50,13 @@ const successTemplate = document.querySelector<HTMLTemplateElement>('#success')!
 
 const basketClone = cloneTemplate(basketTemplate) as HTMLElement;
 const basketView = new BasketView(events, basketClone);
+const previewClone = cloneTemplate(cardPreviewTemplate);
+const preview = new CardPreview(previewClone, {
+  onClick: () => events.emit('preview:toggle')
+});
 
-
+let orderForm: OrderForm | null = null;
+let contactsForm: ContactsForm | null = null;
 
 
 events.on('catalog:changed', () => {
@@ -64,7 +71,7 @@ events.on('catalog:changed', () => {
     return card.render(product);
   });
 
-  gallery.catalog = cards;
+  gallery.render({ catalog: cards });
 });
 
 
@@ -72,30 +79,28 @@ events.on('product:selected', () => {
   const product = catalog.getSelectedProduct();
   if (!product) return;
 
-  const clone = cloneTemplate(cardPreviewTemplate);
+  const isInBasket = basket.hasItem(product.id);
 
-  const preview = new CardPreview(clone, {
-    onClick: () => {
-      if (basket.hasItem(product.id)) {
-        basket.removeItem(product);
-        preview.buttonText = 'В корзину';
-      } else {
-        basket.addItem(product);
-        preview.buttonText = 'Удалить из корзины';
-      }
-    }
-  });
+  preview.buttonDisabled = product.price === null;
+  preview.buttonText = product.price === null ? 'Недоступно' : isInBasket ? 'Удалить из корзины' 
+    : 'В корзину';
 
-  if (product.price === null) {
-    preview.buttonDisabled = true;
-    preview.buttonText = 'Недоступно';
-  } else if (basket.hasItem(product.id)) {
-    preview.buttonText = 'Удалить из корзины';
+  modal.open(
+    preview.render(product)
+  );
+});
+
+events.on('preview:toggle', () => {
+  const product = catalog.getSelectedProduct();
+  if (!product) return;
+
+  if (basket.hasItem(product.id)) {
+    basket.removeItem(product);
   } else {
-    preview.buttonText = 'В корзину';
+    basket.addItem(product);
   }
 
-  modal.open(preview.render(product));
+  events.emit('product:selected');
 });
 
 
@@ -112,7 +117,7 @@ events.on('basket:changed', () => {
     const clone = cloneTemplate(cardBasketTemplate);
 
     const card = new CardBasket(clone, {
-      onClick: () => basket.removeItem(product)
+      onClick: () => events.emit('basket:remove', product)
     });
 
     return card.render({
@@ -124,47 +129,51 @@ events.on('basket:changed', () => {
 
   basketView.items = elements;
   basketView.total = basket.getTotalPrice();
+});
 
-
+events.on('basket:remove', (product: IProduct) => {
+  basket.removeItem(product);
 });
 
 events.on('buyer:changed', () => {
+  const errors = buyer.validate();
+  const data = buyer.getData();
 
-  const errorsOrder = buyer.validate('order');
-  const errorsContacts = buyer.validate('contacts');
-
-  if (document.querySelector('form[name="order"]')) {
-    const form = document.querySelector('form[name="order"]') as HTMLFormElement;
-    const button = form.querySelector('button[type="submit"]') as HTMLButtonElement;
-    const errorElement = form.querySelector('.form__errors') as HTMLElement;
-
-    button.disabled = Object.keys(errorsOrder).length > 0;
-    errorElement.textContent = Object.values(errorsOrder).join(', ');
+  if (orderForm) {
+    orderForm.payment = data.payment;
+    orderForm.valid = !errors.payment && !errors.address;
+    orderForm.errors = [
+      errors.payment,
+      errors.address
+    ].filter(Boolean).join(', ');
   }
 
-  if (document.querySelector('form[name="contacts"]')) {
-    const form = document.querySelector('form[name="contacts"]') as HTMLFormElement;
-    const button = form.querySelector('button[type="submit"]') as HTMLButtonElement;
-    const errorElement = form.querySelector('.form__errors') as HTMLElement;
-
-    button.disabled = Object.keys(errorsContacts).length > 0;
-    errorElement.textContent = Object.values(errorsContacts).join(', ');
+  if (contactsForm) {
+    contactsForm.email = data.email;
+    contactsForm.phone = data.phone;
+    contactsForm.valid = !errors.email && !errors.phone;
+    contactsForm.errors = [
+      errors.email,
+      errors.phone
+    ].filter(Boolean).join(', ');
   }
 });
 
 events.on('order:start', () => {
   const clone = cloneTemplate(orderTemplate);
-  const orderForm = new OrderForm(events, clone);
+  orderForm = new OrderForm(events, clone);
 
   modal.open(orderForm.render());
+  events.emit('buyer:changed');
 });
 
 
 events.on('order:submit', () => {
   const clone = cloneTemplate(contactsTemplate);
-  const contactsForm = new ContactsForm(events, clone);
+  contactsForm = new ContactsForm(events, clone); 
 
   modal.open(contactsForm.render());
+  events.emit('buyer:changed');
 });
 
 
@@ -186,6 +195,9 @@ events.on('phone:change', data => {
 
 events.on('modal:close', () => {
   modal.close();
+  orderForm = null;
+  contactsForm = null;
+  
 });
 
 events.on('contacts:submit', () => {
@@ -201,17 +213,13 @@ events.on('contacts:submit', () => {
     buyer.clear();
 
     const clone = cloneTemplate(successTemplate);
-    const description = clone.querySelector('.order-success__description') as HTMLElement;
+    const successView = new SuccessView(clone, events);
 
-    description.textContent = `Списано ${response.total} синапсов`;
-
-    const closeButton = clone.querySelector('.order-success__close') as HTMLButtonElement;
-
-  closeButton.addEventListener('click', () => {
-    modal.close();
-  });
-
-    modal.open(clone);
+    modal.open(
+      successView.render({
+        total: response.total
+      })
+    );
   });
 });
 

@@ -33,11 +33,4 @@ export class ContactsForm extends Form<unknown> {
     this.phoneInput.value = value;
   }
 
-  set valid(value: boolean) {
-    this.submitButton.disabled = !value;
-  }
-
-  set errors(value: string) {
-    this.errorElement.textContent = value;
-  }
 }
